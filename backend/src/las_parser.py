@@ -27,24 +27,29 @@ well_id = int(result.stdout.strip())
 print(well_id)
 
 depths_literal = "{" + ",".join(str(d) for d in las.index) + "}"
-readings_literal = "{" + ",".join(str(v) for v in las["GR"]) + "}"
 
 print(depths_literal)
-print(readings_literal)
 
-mnemonic = las.curves["GR"].mnemonic
-unit = las.curves["GR"].unit
 
-insert_curve_sql = f"""
-INSERT INTO curves (well_id, mnemonic, unit, depths, readings)
-VALUES ({well_id}, '{mnemonic}', '{unit}', '{depths_literal}', '{readings_literal}');
-"""
+for curve in las.curves:
+    if curve.mnemonic == "DEPT":
+        continue
 
-result2 = subprocess.run(
-    ["psql", "-U", "postgres", "-d", "groundlog"],
-    input = insert_curve_sql,
-    text = True,
-    capture_output = True,
-)
-print(result2.stdout)
-print(result2.stderr)
+    mnemonic = curve.mnemonic
+    unit = curve.unit
+    data = curve.data
+    readings_literal = "{" + ",".join(str(v) for v in data) + "}"
+
+    insert_curve_sql = f"""
+    INSERT INTO curves (well_id, mnemonic, unit, depths, readings)
+    VALUES ({well_id}, '{mnemonic}', '{unit}', '{depths_literal}', '{readings_literal}');
+    """
+
+    result2 = subprocess.run(
+        ["psql", "-U", "postgres", "-d", "groundlog"],
+        input = insert_curve_sql,
+        text = True,
+        capture_output = True,
+    )
+    print(result2.stdout)
+    print(result2.stderr)
