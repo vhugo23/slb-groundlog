@@ -8,15 +8,114 @@
 import os
 from contextlib import contextmanager
 
+import math
+
 from fastapi import HTTPException
 
 import psycopg2
 import psycopg2.extras
+import re
 from psycopg2 import pool
 from fastapi import FastAPI
 from pydantic import BaseModel
+from google import genai
 
 app = FastAPI(title="GroundLog API")
+
+def find_mentioned_curve(question: str, available_curves: list[str]) -> str | None:
+    for curve in available_curves:
+        if re.search(rf"\b{re.escape(curve)}\b", question, re.IGNORECASE):
+            return curve
+    return None
+
+QUALITY_KEYWORDS = [
+    "flag", "flagged", "quality", "problem", "issue",
+    "gap", "missing", "flatline", "duplicate", "out of range",
+]
+
+def is_quality_question(question: str) -> bool:
+    question_lower = question.lower()
+    return any(keyword in question_lower for keyword in QUALITY_KEYWORDS)
+
+def get_curve_summary(cur, well_id: int, mnemonic: str) -> dict | None:
+    cur.execute(
+        "SELECT unit, readings FROM curves WHERE well_id = %s AND mnemonic = %s;",
+        (well_id, mnemonic),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+
+    values = [v for v in row["readings"] if not math.isnan(v)]
+    if not values:
+        return {"mnemonic": mnemonic, "unit": row["unit"], "count": 0, "min": None, "max": None, "mean": None}
+
+    return {
+        "mnemonic": mnemonic,
+        "unit": row["unit"],
+        "count": len(values),
+        "min": min(values),
+        "max": max(values),
+        "mean": sum(values) / len(values),
+    }
+
+def get_quality_flags(cur, well_id: int) -> list[dict]:
+    cur.execute(
+        """
+        SELECT flag_type, curve, depth_start, depth_end, detail
+        FROM quality_flags
+        WHERE well_id = %s
+        ORDER BY flag_type, curve, depth_start;
+        """,
+        (well_id,),
+    )
+    return cur.fetchall()
+
+def summarize_quality_flags(flags: list[dict]) -> dict:
+    summary = {}
+    for flag in flags:
+        flag_type = flag["flag_type"]
+        curve = flag["curve"]
+        entry = summary.setdefault(flag_type, {"count": 0, "curves": set()})
+        entry["count"] += 1
+        if curve:
+            entry["curves"].add(curve)
+
+    return {
+        flag_type: {"count": data["count"], "curves": sorted(data["curves"])}
+        for flag_type, data in summary.items()
+    }
+
+_genai_client = genai.Client()
+
+def call_llm(prompt: str) -> str:
+    interaction = _genai_client.interactions.create(
+        model="gemini-3.6-flash",
+        input=prompt,
+        timeout=30,
+    )
+    return interaction.output_text
+
+def build_grounded_prompt(context: dict, question: str) -> str:
+    return f"""You are answering a question about well-log data using ONLY the information given below. Do not use any outside knowledge about oil and gas wells, geology, or typical values.
+
+DATA:
+{context}
+
+QUESTION:
+{question}
+
+Instructions:
+- Answer using ONLY the DATA above.
+- If the DATA above does not contain enough information to answer the question, respond with exactly the single word: INSUFFICIENT_DATA
+- Otherwise, give a short, direct answer, referencing specific numbers from the DATA.
+"""
+
+
+def interpret_llm_response(raw_response: str) -> tuple[bool, str]:
+    if "INSUFFICIENT_DATA" in raw_response:
+        return False, "The available data doesn't support answering that question."
+    return True, raw_response.strip()
 
 # A connection POOL, not one connection per request. las_parser.py shells out
 # to `psql` as a subprocess per statement - fine for one-time batch loading,
@@ -173,3 +272,97 @@ def get_well(well_id: int):
         curves=curves,
         quality_flags=flags,
     )
+
+class CurveSeries(BaseModel):
+    mnemonic: str
+    unit: str
+    depths: list[float]
+    values: list[float | None]
+
+
+# Note: PRD's documented shape calls this field "values"; the DB column
+# it's read from is named "readings" (see sql/schema.sql). Deliberate -
+# API response field names don't have to mirror internal column names.
+@app.get("/wells/{well_id}/curves/{mnemonic}", response_model=CurveSeries)
+def get_curve(well_id: int, mnemonic: str):
+    with get_db_cursor() as cur:
+        # mnemonic is untrusted path input just like well_id was -
+        # %s-parameterized for the same SQL-injection reason as before.
+        cur.execute(
+            "SELECT mnemonic, unit, depths, readings FROM curves WHERE well_id = %s AND mnemonic = %s;",
+            (well_id, mnemonic),
+        )
+        row = cur.fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No curve '{mnemonic}' found for well {well_id}",
+        )
+
+    # NaN -> None. JSON has no NaN token; Python's json module will emit a
+    # literal `NaN` anyway if you let it, which is invalid JSON and will
+    # break strict JSON.parse() downstream. This is the actual fix, not a
+    # style choice.
+    clean_values = [None if math.isnan(v) else v for v in row["readings"]]
+
+    return CurveSeries(
+        mnemonic=row["mnemonic"],
+        unit=row["unit"],
+        depths=row["depths"],
+        values=clean_values,
+    )
+
+class QueryRequest(BaseModel):
+    question: str
+
+class QueryResponse(BaseModel):
+    grounded: bool
+    answer: str
+    citation: str | None = None
+
+@app.post("/wells/{well_id}/query", response_model=QueryResponse)
+def query_well(well_id: int, request: QueryRequest):
+    with get_db_cursor() as cur:
+        cur.execute("SELECT id FROM wells WHERE id = %s;", (well_id,))
+        well = cur.fetchone()
+        if well is None:
+            raise HTTPException(status_code=404, detail=f"Well {well_id} not found")
+
+        cur.execute(
+            "SELECT DISTINCT mnemonic FROM curves WHERE well_id = %s ORDER BY mnemonic;",
+            (well_id,),
+        )
+        available_curves = [row["mnemonic"] for row in cur.fetchall()]
+    
+    mentioned_curve = find_mentioned_curve(request.question, available_curves)
+
+    if mentioned_curve:
+        with get_db_cursor() as cur:
+            summary = get_curve_summary(cur, well_id, mentioned_curve)
+        prompt = build_grounded_prompt(summary, request.question)
+        raw = call_llm(prompt)
+        grounded, answer = interpret_llm_response(raw)
+        return QueryResponse(
+            grounded=grounded,
+            answer=answer,
+            citation=f"well {well_id}, curve {mentioned_curve}" if grounded else None,
+        )
+    elif is_quality_question(request.question):
+        with get_db_cursor() as cur:
+            flags = get_quality_flags(cur, well_id)
+        summary = summarize_quality_flags(flags)
+        prompt = build_grounded_prompt(summary, request.question)
+        raw = call_llm(prompt)
+        grounded, answer = interpret_llm_response(raw)
+        return QueryResponse(
+            grounded=grounded,
+            answer=answer,
+            citation=f"well {well_id} quality_flags" if grounded else None,
+        )
+    else:
+        return QueryResponse(
+            grounded=False,
+            answer="I can't answer that from this well's data — try asking about a specific curve or its quality flags.",
+            citation=None,
+        )
