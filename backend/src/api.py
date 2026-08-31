@@ -20,7 +20,16 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from google import genai
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="GroundLog API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def find_mentioned_curve(question: str, available_curves: list[str]) -> str | None:
     for curve in available_curves:
