@@ -377,6 +377,25 @@ def query_well(well_id: int, request: QueryRequest):
             citation=f"well {well_id} quality_flags" if grounded else None,
         )
     else:
+        # No curve name or quality keyword matched - but that's no longer a
+        # reason to skip the LLM. We hand it an explicit "nothing found"
+        # context instead of real data, and let build_grounded_prompt's own
+        # instructions + interpret_llm_response's sentinel check decide the
+        # refusal. This is a real model call, not a canned string - the
+        # model can genuinely say something other than INSUFFICIENT_DATA if
+        # it ignores instructions, and the benchmark should catch that if
+        # it happens.
+        #
+        # citation is always None here regardless of what the model
+        # returns: there is no retrieved record in this branch, so there is
+        # nothing honest to cite even if the model claims groundedness.
+        context = {
+            "status": "no_matching_data",
+            "explanation": "No curve or quality-flag data in this well matches what this question is asking about.",
+        }
+        prompt = build_grounded_prompt(context, request.question)
+        raw = call_llm(prompt)
+        grounded, answer = interpret_llm_response(raw)
         return QueryResponse(
             grounded=False,
             answer="I can't answer that from this well's data — try asking about a specific curve or its quality flags.",
