@@ -6,7 +6,9 @@ CREATE TABLE wells (
     step DOUBLE PRECISION NOT NULL,
     null_value DOUBLE PRECISION NOT NULL,
     source_file TEXT NOT NULL,
-    ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION
 );
 
 CREATE TABLE curves (

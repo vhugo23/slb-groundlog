@@ -164,6 +164,9 @@ class DepthRange(BaseModel):
     start: float
     stop: float
 
+class Location(BaseModel):
+    lat: float
+    lon: float
 
 class WellSummary(BaseModel):
     id: int
@@ -171,6 +174,7 @@ class WellSummary(BaseModel):
     quality_status: str
     depth_range: DepthRange
     curve_count: int
+    location: Location | None = None
 
 
 @app.get("/wells", response_model=list[WellSummary])
@@ -185,12 +189,14 @@ def list_wells():
                 w.name,
                 w.start_depth,
                 w.stop_depth,
+                w.latitude,
+                w.longitude,
                 COUNT(DISTINCT c.mnemonic) AS curve_count,
                 COUNT(DISTINCT q.id) AS flag_count
             FROM wells w
             LEFT JOIN curves c ON c.well_id = w.id
             LEFT JOIN quality_flags q ON q.well_id = w.id
-            GROUP BY w.id, w.name, w.start_depth, w.stop_depth
+            GROUP BY w.id, w.name, w.start_depth, w.stop_depth, w.latitude, w.longitude
             ORDER BY w.id;
         """)
         rows = cur.fetchall()
@@ -204,6 +210,7 @@ def list_wells():
             quality_status="flagged" if row["flag_count"] > 0 else "clean",
             depth_range=DepthRange(start=row["start_depth"], stop=row["stop_depth"]),
             curve_count=row["curve_count"],
+            location=Location(lat=row["latitude"], lon=row["longitude"]) if row["latitude"] is not None else None,
         )
         for row in rows
     ]
@@ -366,3 +373,4 @@ def query_well(well_id: int, request: QueryRequest):
             answer="I can't answer that from this well's data — try asking about a specific curve or its quality flags.",
             citation=None,
         )
+
