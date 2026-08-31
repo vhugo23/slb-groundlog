@@ -29,7 +29,15 @@ def check_curve_gap(depths, values, min_run=3):
 
     return gaps
 
-def check_flatline(depths, values, min_run=20, tolerance=0.01):
+def check_flatline(depths, values, min_run=20, tolerance_pct=0.002):
+    values = np.asarray(values, dtype=float)
+    finite_values = values[~np.isnan(values)]
+    if len(finite_values) == 0:
+        return []
+    p_low, p_high = np.percentile(finite_values, [5, 95])
+    curve_range = p_high - p_low
+    tolerance = curve_range * tolerance_pct
+
     flats = []
     run_start = 0
     run_length = 1

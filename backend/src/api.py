@@ -101,7 +101,7 @@ def call_llm(prompt: str) -> str:
     interaction = _genai_client.interactions.create(
         model="gemini-3.6-flash",
         input=prompt,
-        timeout=30,
+        timeout=60,
     )
     return interaction.output_text
 
