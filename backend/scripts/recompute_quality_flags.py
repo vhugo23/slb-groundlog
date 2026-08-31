@@ -11,6 +11,7 @@ from quality_checks import (
     check_curve_gap,
     check_flatline,
     check_out_of_range,
+    sanitize_null_sentinels,
     PHYSICAL_RANGES,
 )
 from las_parser import get_connection, insert_quality_flag, SKIP_CURVES, SKIP_FLATLINE_CURVES
@@ -51,7 +52,7 @@ def recompute_las(conn, las_path):
             continue
 
         mnemonic = curve.mnemonic
-        data = [float(v) for v in curve.data]
+        data = sanitize_null_sentinels([float(v) for v in curve.data])
 
         for start, end in check_curve_gap(depths, data):
             insert_quality_flag(

@@ -11,6 +11,7 @@ from quality_checks import (
     check_flatline,
     check_out_of_range,
     PHYSICAL_RANGES,
+    sanitize_null_sentinels,
 )
 
 # Location/index metadata columns, not petrophysical log curves. Left in
@@ -89,8 +90,7 @@ def ingest_las(conn, las_path):
 
         mnemonic = curve.mnemonic
         unit = curve.unit or ""
-        data = [float(v) for v in curve.data]
-
+        data = sanitize_null_sentinels([float(v) for v in curve.data])
         cur.execute(
             """
             INSERT INTO curves (well_id, mnemonic, unit, depths, readings)
