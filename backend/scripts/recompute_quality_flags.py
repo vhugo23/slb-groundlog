@@ -13,31 +13,35 @@ from quality_checks import (
     check_out_of_range,
     PHYSICAL_RANGES,
 )
-from las_parser import run_sql, insert_quality_flag, sql_escape, SKIP_CURVES, SKIP_FLATLINE_CURVES
+from las_parser import get_connection, insert_quality_flag, SKIP_CURVES, SKIP_FLATLINE_CURVES
 
 
-def get_well_id(name):
-    result = run_sql(f"SELECT id FROM wells WHERE name = '{sql_escape(name)}';", capture=True).strip()
-    return int(result) if result else None
+def get_well_id(cur, name):
+    cur.execute("SELECT id FROM wells WHERE name = %s;", (name,))
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
-def recompute_las(las_path):
+def recompute_las(conn, las_path):
     las = lasio.read(las_path)
     name = las.well.WELL.value
-    well_id = get_well_id(name)
+
+    cur = conn.cursor()
+    well_id = get_well_id(cur, name)
     if well_id is None:
         print(f"  !! no matching well found for {name!r}, skipping")
+        cur.close()
         return
 
     print(f"\n=== Recomputing quality flags for {name!r} (well_id={well_id}) ===")
-    run_sql(f"DELETE FROM quality_flags WHERE well_id = {well_id};")
+    cur.execute("DELETE FROM quality_flags WHERE well_id = %s;", (well_id,))
 
-    depths = las.index
+    depths = [float(d) for d in las.index]
     flags_found = 0
 
     for depth in check_duplicate_depth(depths):
         insert_quality_flag(
-            well_id, "duplicate_depth", None, depth, depth,
+            cur, well_id, "duplicate_depth", None, depth, depth,
             f"Depth {depth} appears more than once in the index",
         )
         flags_found += 1
@@ -47,11 +51,11 @@ def recompute_las(las_path):
             continue
 
         mnemonic = curve.mnemonic
-        data = curve.data
+        data = [float(v) for v in curve.data]
 
         for start, end in check_curve_gap(depths, data):
             insert_quality_flag(
-                well_id, "curve_gap", mnemonic, start, end,
+                cur, well_id, "curve_gap", mnemonic, start, end,
                 f"{mnemonic} missing for depths {start}-{end}",
             )
             flags_found += 1
@@ -59,7 +63,7 @@ def recompute_las(las_path):
         if mnemonic.upper() not in SKIP_FLATLINE_CURVES:
             for start, end in check_flatline(depths, data):
                 insert_quality_flag(
-                    well_id, "flatline", mnemonic, start, end,
+                    cur, well_id, "flatline", mnemonic, start, end,
                     f"{mnemonic} constant from {start} to {end} - possible tool fault",
                 )
                 flags_found += 1
@@ -67,16 +71,20 @@ def recompute_las(las_path):
         if mnemonic in PHYSICAL_RANGES:
             for depth, value in check_out_of_range(depths, data, mnemonic):
                 insert_quality_flag(
-                    well_id, "out_of_range", mnemonic, depth, depth,
+                    cur, well_id, "out_of_range", mnemonic, depth, depth,
                     f"{mnemonic} reading of {value} outside expected range",
                 )
                 flags_found += 1
 
+    conn.commit()
+    cur.close()
     print(f"  -> {flags_found} quality flags recorded")
 
 
 if __name__ == "__main__":
+    conn = get_connection()
     paths = sorted(glob.glob("sample_data/force2020/*.las"))
     for p in paths:
-        recompute_las(p)
+        recompute_las(conn, p)
+    conn.close()
     print("\nDone.")
