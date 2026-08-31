@@ -1,4 +1,8 @@
-from src.api import build_grounded_prompt, interpret_llm_response, call_llm
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from api import build_grounded_prompt, interpret_llm_response, call_llm
 
 # The real GR summary you already retrieved and verified earlier.
 context = {

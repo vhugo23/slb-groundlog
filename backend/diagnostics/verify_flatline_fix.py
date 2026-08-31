@@ -1,5 +1,9 @@
 import lasio
-from src.quality_checks import check_flatline
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+from quality_checks import check_flatline
 
 SKIP_CURVES = {"DEPT", "DEPTH_MD", "X_LOC", "Y_LOC", "Z_LOC"}
 SKIP_FLATLINE_CURVES = {"FORCE_2020_LITHOFACIES_LITHOLOGY", "FORCE_2020_LITHOFACIES_CONFIDENCE"}
