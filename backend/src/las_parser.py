@@ -14,9 +14,12 @@ from quality_checks import (
 )
 
 # Location/index metadata columns, not petrophysical log curves. Left in
-# they'd flatline-flag as "tool faults" for hundreds of meters (x_loc/y_loc
-# are constant for a near-vertical well, DEPTH_MD duplicates the index) -
-# noise, not a real finding, so they're excluded from ingestion + checks.
+# they'd flatline-flag as "tool faults" for hundreds of meters. x_loc/y_loc
+# are effectively constant because these are genuinely near-vertical wells -
+# verified directly (see verify_well_verticality.py): horizontal drift
+# across the whole logged interval is 6-50m per well, negligible against
+# ~3000m of depth. DEPTH_MD duplicates the index. Excluded from ingestion
+# + checks as noise, not a real finding.
 SKIP_CURVES = {"DEPT", "DEPTH_MD", "X_LOC", "Y_LOC", "Z_LOC"}
 
 # Interpreted/categorical columns, not continuous physical measurements.
