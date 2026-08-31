@@ -95,10 +95,21 @@ def summarize_quality_flags(flags: list[dict]) -> dict:
         for flag_type, data in summary.items()
     }
 
-_genai_client = genai.Client()
+# Constructed lazily, on first real use - not at import time. Importing
+# this module (which every test file has to do to get `app`) shouldn't
+# require a live API key just to build an object nothing in that import
+# path actually calls. This also means tests that mock call_llm() outright
+# never touch the real client at all.
+_genai_client = None
+
+def get_genai_client():
+    global _genai_client
+    if _genai_client is None:
+        _genai_client = genai.Client()
+    return _genai_client
 
 def call_llm(prompt: str) -> str:
-    interaction = _genai_client.interactions.create(
+    interaction = get_genai_client().interactions.create(
         model="gemini-3.6-flash",
         input=prompt,
         timeout=60,
