@@ -31,6 +31,13 @@ interface QualityFlag {
   detail: string
 }
 
+interface CurveData {
+  mnemonic: string
+  unit: string
+  depths: number[]
+  values: (number | null)[]
+}
+
 function getMarkerIcon(qualityStatus: string) {
   const color = qualityStatus === 'clean' ? '#22c55e' : '#f97316'
   return L.divIcon({
@@ -58,6 +65,44 @@ const slbIcon = L.divIcon({
   iconAnchor: [7, 7],
 })
 
+function scaleDepthToY(depth: number, minDepth: number, maxDepth: number, height: number): number {
+  return ((depth - minDepth) / (maxDepth - minDepth)) * height
+}
+
+function scaleValueToX(value: number, minValue: number, maxValue: number, width: number): number {
+  return ((value - minValue) / (maxValue - minValue)) * width
+}
+
+function buildLogTrackPaths(curve: CurveData, width: number, height: number): string[] {
+  const numericValues = curve.values.filter((v): v is number => v !== null)
+  const minValue = Math.min(...numericValues)
+  const maxValue = Math.max(...numericValues)
+  const minDepth = curve.depths[0]
+  const maxDepth = curve.depths[curve.depths.length - 1]
+
+  const segments: string[] = []
+  let currentSegment: string[] = []
+
+  curve.depths.forEach((depth, i) => {
+    const value = curve.values[i]
+    if (value === null) {
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment.join(' '))
+        currentSegment = []
+      }
+      return
+    }
+    const x = scaleValueToX(value, minValue, maxValue, width)
+    const y = scaleDepthToY(depth, minDepth, maxDepth, height)
+    currentSegment.push(`${currentSegment.length === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`)
+  })
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment.join(' '))
+  }
+
+  return segments
+}
+
 function App() {
   const [wells, setWells] = useState<Well[]>([])
   const [selectedWell, setSelectedWell] = useState<Well | null>(null)
@@ -66,6 +111,7 @@ function App() {
   const [isQuerying, setIsQuerying] = useState(false)
   const [showSlbCenters, setShowSlbCenters] = useState(true)
   const [wellFlags, setWellFlags] = useState<QualityFlag[]>([])
+  const [curveTracks, setCurveTracks] = useState<CurveData[]>([])
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/wells')
@@ -77,11 +123,27 @@ function App() {
   useEffect(() => {
     if (!selectedWell) {
       setWellFlags([])
+      setCurveTracks([])
       return
     }
     fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}`)
       .then((res) => res.json())
-      .then((data) => setWellFlags(data.quality_flags))
+      .then((data) => {
+        setWellFlags(data.quality_flags)
+
+        const preferred = ['GR', 'NPHI']
+        const available: string[] = data.curves
+        const mnemonicsToPlot = preferred.filter((m) => available.includes(m))
+        if (mnemonicsToPlot.length === 0) {
+          mnemonicsToPlot.push(...available.slice(0, 2))
+        }
+
+        Promise.all(
+          mnemonicsToPlot.map((mnemonic) =>
+            fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}/curves/${mnemonic}`).then((res) => res.json())
+          )
+        ).then((tracks) => setCurveTracks(tracks))
+      })
       .catch((err) => console.error('Failed to fetch well detail:', err))
   }, [selectedWell])
 
@@ -173,6 +235,21 @@ function App() {
           <button onClick={() => setSelectedWell(null)}>Close</button>
           <h2>{selectedWell.name}</h2>
           <p>Status: {selectedWell.quality_status}</p>
+
+          {curveTracks.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              {curveTracks.map((curve) => (
+                <div key={curve.mnemonic}>
+                  <div style={{ fontSize: '11px', textAlign: 'center' }}>{curve.mnemonic}</div>
+                  <svg width={90} height={180} style={{ border: '1px solid #ddd' }}>
+                    {buildLogTrackPaths(curve, 90, 180).map((d, i) => (
+                      <path key={i} d={d} fill="none" stroke="#2563eb" strokeWidth={1} />
+                    ))}
+                  </svg>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ marginTop: '16px', maxHeight: '200px', overflowY: 'auto', fontSize: '12px' }}>
             {wellFlags.map((flag, i) => (
