@@ -84,3 +84,19 @@ def test_query_fallback_never_fabricates_citation(fixture_well):
         response = client.post(f"/wells/{fixture_well}/query", json={"question": "what is the ILD reading"})
     assert response.status_code == 200
     assert response.json()["citation"] is None
+    
+def test_query_fallback_reflects_real_model_answer(fixture_well):
+    # If the model ignores the "answer only from DATA" instruction and
+    # gives a real-sounding answer instead of the INSUFFICIENT_DATA
+    # sentinel, the endpoint must actually reflect that - grounded=True,
+    # answer equal to the model's real text. This is the test that would
+    # have caught the original bug: the old code hardcoded grounded=False
+    # and a canned string in this branch regardless of what the model
+    # said, so this exact assertion would have failed against it.
+    with patch("api.call_llm", return_value="The reading is approximately 42 ohm.m."):
+        response = client.post(f"/wells/{fixture_well}/query", json={"question": "what is the ILD reading"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["grounded"] is True
+    assert body["answer"] == "The reading is approximately 42 ohm.m."
+    assert body["citation"] is None
