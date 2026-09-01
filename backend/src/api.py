@@ -408,8 +408,7 @@ def query_well(well_id: int, request: QueryRequest):
         raw = call_llm(prompt)
         grounded, answer = interpret_llm_response(raw)
         return QueryResponse(
-            grounded=False,
-            answer="I can't answer that from this well's data — try asking about a specific curve or its quality flags.",
+            grounded=grounded,
+            answer=answer,
             citation=None,
         )
-
