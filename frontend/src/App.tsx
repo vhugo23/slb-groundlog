@@ -43,6 +43,15 @@ interface FlagBand {
   height: number
 }
 
+interface SlbCenter {
+  name: string
+  lat: number
+  lon: number
+  type: 'research' | 'learning'
+  description: string
+  link: string
+}
+
 function getMarkerIcon(qualityStatus: string) {
   const color = qualityStatus === 'clean' ? '#22c55e' : '#f97316'
   return L.divIcon({
@@ -53,14 +62,14 @@ function getMarkerIcon(qualityStatus: string) {
   })
 }
 
-const SLB_CENTERS = [
-  { name: 'Clamart Technology Center (France)', lat: 48.7942, lon: 2.2686 },
-  { name: 'Cambridge Research Center (UK)', lat: 52.2168, lon: 0.1568 },
-  { name: 'Schlumberger-Doll Research Center (Cambridge, MA)', lat: 42.3656, lon: -71.0836 },
-  { name: 'Beijing Geoscience Center (China)', lat: 39.9042, lon: 116.4074 },
-  { name: 'Dhahran Research Center (Saudi Arabia)', lat: 26.2361, lon: 50.0393 },
-  { name: 'Kellyville Learning Center (near Tulsa, USA)', lat: 36.1540, lon: -95.9928 },
-  { name: 'Middle East and Asia Learning Center (Abu Dhabi, UAE)', lat: 24.4539, lon: 54.3773 },
+const SLB_CENTERS: SlbCenter[] = [
+  { name: 'Clamart Technology Center (France)', lat: 48.7942, lon: 2.2686, type: 'research', description: "SLB's largest technology hub in Europe—and its second largest worldwide.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Cambridge Research Center (UK)', lat: 52.2168, lon: 0.1568, type: 'research', description: 'Pioneers new energy solutions — hydrogen, geothermal energy, lithium extraction, energy storage, and carbon sequestration.', link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Schlumberger-Doll Research Center (Cambridge, MA)', lat: 42.3656, lon: -71.0836, type: 'research', description: "Established in 1948; one of SLB's most celebrated and innovative research centers.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Beijing Geoscience Center (China)', lat: 39.9042, lon: 116.4074, type: 'research', description: "Serves as the digital backbone of SLB's drilling solutions.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Dhahran Research Center (Saudi Arabia)', lat: 26.2361, lon: 50.0393, type: 'research', description: "Crucial to advancing SLB's understanding of carbonate reservoirs.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Kellyville Learning Center (near Tulsa, USA)', lat: 36.1540, lon: -95.9928, type: 'learning', description: "A cornerstone of SLB's training and development efforts, empowering teams for over 50 years.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
+  { name: 'Middle East and Asia Learning Center (Abu Dhabi, UAE)', lat: 24.4539, lon: 54.3773, type: 'learning', description: "Nurtures SLB's global workforce, shaping the workforce of tomorrow.", link: 'https://www.slb.com/about/who-we-are/our-technology' },
 ]
 
 const slbIcon = L.divIcon({
@@ -246,7 +255,28 @@ function App() {
                 mapRef.current?.flyTo([center.lat, center.lon], 8, { duration: 1 })
               } }}
             >
-              <Popup>{center.name}</Popup>
+              <Popup>
+                <div style={{ minWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    {center.type === 'research' ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2">
+                        <path d="M9 2v6.5L4 20a1 1 0 0 0 1 1.5h14a1 1 0 0 0 1-1.5L15 8.5V2" />
+                        <path d="M9 2h6" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2">
+                        <path d="M22 10 12 5 2 10l10 5 10-5Z" />
+                        <path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" />
+                      </svg>
+                    )}
+                    <strong>{center.name}</strong>
+                  </div>
+                  <p style={{ margin: '4px 0', fontSize: '13px' }}>{center.description}</p>
+                  <a href={center.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px' }}>
+                    View on slb.com →
+                  </a>
+                </div>
+              </Popup>
             </Marker>
           ))}
       </MapContainer>
