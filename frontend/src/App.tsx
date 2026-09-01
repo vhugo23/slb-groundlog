@@ -141,6 +141,8 @@ function App() {
   const [showSlbCenters, setShowSlbCenters] = useState(true)
   const [wellFlags, setWellFlags] = useState<QualityFlag[]>([])
   const [curveTracks, setCurveTracks] = useState<CurveData[]>([])
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
   const mapRef = useRef<L.Map | null>(null)
 
   useEffect(() => {
@@ -160,8 +162,13 @@ function App() {
     if (!selectedWell) {
       setWellFlags([])
       setCurveTracks([])
+      setDetailError(null)
       return
     }
+    setDetailLoading(true)
+    setDetailError(null)
+    setWellFlags([])
+    setCurveTracks([])
     fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -174,13 +181,17 @@ function App() {
           mnemonicsToPlot.push(...available.slice(0, 2))
         }
 
-        Promise.all(
+        return Promise.all(
           mnemonicsToPlot.map((mnemonic) =>
             fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}/curves/${mnemonic}`).then((res) => res.json())
           )
         ).then((tracks) => setCurveTracks(tracks))
       })
-      .catch((err) => console.error('Failed to fetch well detail:', err))
+      .catch((err) => {
+        console.error('Failed to fetch well detail:', err)
+        setDetailError("Could not load this well's data — check that the API server is running.")
+      })
+      .finally(() => setDetailLoading(false))
   }, [selectedWell])
 
   async function handleSubmitQuestion() {
@@ -312,6 +323,13 @@ function App() {
           <button onClick={() => setSelectedWell(null)}>Close</button>
           <h2>{selectedWell.name}</h2>
           <p>Status: {selectedWell.quality_status}</p>
+
+          {detailError && (
+            <p style={{ color: '#dc2626', fontSize: '13px' }}>{detailError}</p>
+          )}
+          {detailLoading && (
+            <p style={{ fontSize: '13px', color: '#666' }}>Loading well data…</p>
+          )}
 
           {curveTracks.length > 0 && (
             <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
