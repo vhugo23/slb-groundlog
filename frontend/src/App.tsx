@@ -132,6 +132,8 @@ function getFlagBandsForCurve(curve: CurveData, flags: QualityFlag[], height: nu
 
 function App() {
   const [wells, setWells] = useState<Well[]>([])
+  const [wellsLoading, setWellsLoading] = useState(true)
+  const [wellsError, setWellsError] = useState<string | null>(null)
   const [selectedWell, setSelectedWell] = useState<Well | null>(null)
   const [question, setQuestion] = useState('')
   const [queryResult, setQueryResult] = useState<{ grounded: boolean; answer: string; citation: string | null } | null>(null)
@@ -142,10 +144,16 @@ function App() {
   const mapRef = useRef<L.Map | null>(null)
 
   useEffect(() => {
+    setWellsLoading(true)
+    setWellsError(null)
     fetch('http://127.0.0.1:8000/wells')
       .then((res) => res.json())
       .then((data) => setWells(data))
-      .catch((err) => console.error('Failed to fetch wells:', err))
+      .catch((err) => {
+        console.error('Failed to fetch wells:', err)
+        setWellsError('Could not load wells — check that the API server is running.')
+      })
+      .finally(() => setWellsLoading(false))
   }, [])
 
   useEffect(() => {
@@ -211,9 +219,17 @@ function App() {
         alignItems: 'center',
         fontSize: '14px',
       }}>
-        <span>Wells: {wells.length}</span>
-        <span style={{ color: '#22c55e' }}>Clean: {wells.filter((w) => w.quality_status === 'clean').length}</span>
-        <span style={{ color: '#f97316' }}>Flagged: {wells.filter((w) => w.quality_status === 'flagged').length}</span>
+        {wellsError ? (
+          <span style={{ color: '#dc2626' }}>{wellsError}</span>
+        ) : wellsLoading ? (
+          <span>Loading wells…</span>
+        ) : (
+          <>
+            <span>Wells: {wells.length}</span>
+            <span style={{ color: '#22c55e' }}>Clean: {wells.filter((w) => w.quality_status === 'clean').length}</span>
+            <span style={{ color: '#f97316' }}>Flagged: {wells.filter((w) => w.quality_status === 'flagged').length}</span>
+          </>
+        )}
         <label>
           <input
             type="checkbox"
