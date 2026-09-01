@@ -23,6 +23,14 @@ interface Well {
   location: { lat: number; lon: number } | null
 }
 
+interface QualityFlag {
+  flag_type: string
+  curve: string
+  depth_start: number
+  depth_end: number
+  detail: string
+}
+
 function getMarkerIcon(qualityStatus: string) {
   const color = qualityStatus === 'clean' ? '#22c55e' : '#f97316'
   return L.divIcon({
@@ -57,6 +65,7 @@ function App() {
   const [queryResult, setQueryResult] = useState<{ grounded: boolean; answer: string; citation: string | null } | null>(null)
   const [isQuerying, setIsQuerying] = useState(false)
   const [showSlbCenters, setShowSlbCenters] = useState(true)
+  const [wellFlags, setWellFlags] = useState<QualityFlag[]>([])
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/wells')
@@ -64,6 +73,17 @@ function App() {
       .then((data) => setWells(data))
       .catch((err) => console.error('Failed to fetch wells:', err))
   }, [])
+
+  useEffect(() => {
+    if (!selectedWell) {
+      setWellFlags([])
+      return
+    }
+    fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}`)
+      .then((res) => res.json())
+      .then((data) => setWellFlags(data.quality_flags))
+      .catch((err) => console.error('Failed to fetch well detail:', err))
+  }, [selectedWell])
 
   async function handleSubmitQuestion() {
     if (!selectedWell || !question.trim()) return
@@ -153,6 +173,14 @@ function App() {
           <button onClick={() => setSelectedWell(null)}>Close</button>
           <h2>{selectedWell.name}</h2>
           <p>Status: {selectedWell.quality_status}</p>
+
+          <div style={{ marginTop: '16px', maxHeight: '200px', overflowY: 'auto', fontSize: '12px' }}>
+            {wellFlags.map((flag, i) => (
+              <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid #eee' }}>
+                {flag.flag_type} — {flag.curve} — {flag.depth_start}–{flag.depth_end}m — {flag.detail}
+              </div>
+            ))}
+          </div>
 
           <textarea
             value={question}
