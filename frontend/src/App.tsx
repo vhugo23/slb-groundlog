@@ -38,6 +38,11 @@ interface CurveData {
   values: (number | null)[]
 }
 
+interface FlagBand {
+  y: number
+  height: number
+}
+
 function getMarkerIcon(qualityStatus: string) {
   const color = qualityStatus === 'clean' ? '#22c55e' : '#f97316'
   return L.divIcon({
@@ -101,6 +106,19 @@ function buildLogTrackPaths(curve: CurveData, width: number, height: number): st
   }
 
   return segments
+}
+
+function getFlagBandsForCurve(curve: CurveData, flags: QualityFlag[], height: number): FlagBand[] {
+  const minDepth = curve.depths[0]
+  const maxDepth = curve.depths[curve.depths.length - 1]
+
+  return flags
+    .filter((f) => f.curve === curve.mnemonic && (f.flag_type === 'flatline' || f.flag_type === 'out_of_range'))
+    .map((f) => {
+      const y1 = scaleDepthToY(f.depth_start, minDepth, maxDepth, height)
+      const y2 = scaleDepthToY(f.depth_end, minDepth, maxDepth, height)
+      return { y: y1, height: Math.max(y2 - y1, 2) }
+    })
 }
 
 function App() {
@@ -242,6 +260,9 @@ function App() {
                 <div key={curve.mnemonic}>
                   <div style={{ fontSize: '11px', textAlign: 'center' }}>{curve.mnemonic}</div>
                   <svg width={90} height={180} style={{ border: '1px solid #ddd' }}>
+                    {getFlagBandsForCurve(curve, wellFlags, 180).map((band, i) => (
+                      <rect key={i} x={0} y={band.y} width={90} height={band.height} fill="#f97316" fillOpacity={0.15} />
+                    ))}
                     {buildLogTrackPaths(curve, 90, 180).map((d, i) => (
                       <path key={i} d={d} fill="none" stroke="#2563eb" strokeWidth={1} />
                     ))}
