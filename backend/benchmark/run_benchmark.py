@@ -11,11 +11,22 @@
 # supports its claim, rather than just checking the model agreed to answer.
 
 import re
+import time
 import requests
 from test_cases import TEST_CASES
 
 BASE_URL = "http://127.0.0.1:8000"
 
+# The benchmark now calls the LLM on every case, including refusals (that's
+# the whole point of the query-engine-honesty fix). That means more real
+# Gemini calls per run than before, which makes colliding with the
+# free-tier rate limit more likely - not a code bug, just more traffic.
+# Retry once or twice with a backoff rather than failing the whole run on
+# a transient 429 (which surfaces to us as our own API's 500, since the
+# API doesn't distinguish it from any other unhandled exception).
+MAX_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 15
+REQUEST_DELAY_SECONDS = 3
 
 def extract_numbers(text: str) -> list[float]:
     return [float(n) for n in re.findall(r"-?\d+\.\d+|-?\d+", text)]
@@ -57,11 +68,19 @@ def check_content(case: dict, answer: str):
 
 
 def run_case(case: dict) -> dict:
-    response = requests.post(
-        f"{BASE_URL}/wells/{case['well_id']}/query",
-        json={"question": case["question"]},
-        timeout=60,
-    )
+    response = None
+    for attempt in range(MAX_RETRIES):
+        response = requests.post(
+            f"{BASE_URL}/wells/{case['well_id']}/query",
+            json={"question": case["question"]},
+            timeout=60,
+        )
+        if response.status_code == 500 and attempt < MAX_RETRIES - 1:
+            print(f'  (500 on "{case["question"]}" - possible rate limit, retrying in {RETRY_BACKOFF_SECONDS}s)')
+            time.sleep(RETRY_BACKOFF_SECONDS)
+            continue
+        break
+
     response.raise_for_status()
     result = response.json()
     grounded_correct = result["grounded"] == case["expect_grounded"]
@@ -78,7 +97,10 @@ def run_case(case: dict) -> dict:
 
 
 def main():
-    results = [run_case(case) for case in TEST_CASES]
+    results = []
+    for case in TEST_CASES:
+        results.append(run_case(case))
+        time.sleep(REQUEST_DELAY_SECONDS)
 
     for r in results:
         status = "PASS" if r["passed"] else "FAIL"

@@ -17,4 +17,12 @@ TEST_CASES = [
     # Unanswerable set: nothing in this well's data could support an answer.
     {"well_id": 1, "question": "what is the weather like today", "type": "unanswerable", "expect_grounded": False},
     {"well_id": 1, "question": "who is the president of the united states", "type": "unanswerable", "expect_grounded": False},
+
+    # Borderline unanswerable: legitimate-sounding well-log questions that
+    # still don't match any curve this well has or any quality keyword -
+    # these are the cases that used to get a canned refusal without ever
+    # reaching the LLM, and now genuinely exercise the model's own
+    # INSUFFICIENT_DATA judgment instead.
+    {"well_id": 1, "question": "what is the ILD reading", "type": "unanswerable", "expect_grounded": False},
+    {"well_id": 1, "question": "how deep was this well drilled", "type": "unanswerable", "expect_grounded": False},
 ]
