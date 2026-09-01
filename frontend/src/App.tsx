@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -56,11 +56,11 @@ function getMarkerIcon(qualityStatus: string) {
 const SLB_CENTERS = [
   { name: 'Clamart Technology Center (France)', lat: 48.7942, lon: 2.2686 },
   { name: 'Cambridge Research Center (UK)', lat: 52.2168, lon: 0.1568 },
-  { name: 'Schlumberger-Doll Research (Cambridge, MA)', lat: 42.3656, lon: -71.0836 },
+  { name: 'Schlumberger-Doll Research Center (Cambridge, MA)', lat: 42.3656, lon: -71.0836 },
   { name: 'Beijing Geoscience Center (China)', lat: 39.9042, lon: 116.4074 },
-  { name: 'Dhahran Technology Center (Saudi Arabia)', lat: 26.2361, lon: 50.0393 },
-  { name: 'Tulsa Technology Center (USA)', lat: 36.1540, lon: -95.9928 },
-  { name: 'Abu Dhabi Innovation Center (UAE)', lat: 24.4539, lon: 54.3773 },
+  { name: 'Dhahran Research Center (Saudi Arabia)', lat: 26.2361, lon: 50.0393 },
+  { name: 'Kellyville Learning Center (near Tulsa, USA)', lat: 36.1540, lon: -95.9928 },
+  { name: 'Middle East and Asia Learning Center (Abu Dhabi, UAE)', lat: 24.4539, lon: 54.3773 },
 ]
 
 const slbIcon = L.divIcon({
@@ -130,6 +130,7 @@ function App() {
   const [showSlbCenters, setShowSlbCenters] = useState(true)
   const [wellFlags, setWellFlags] = useState<QualityFlag[]>([])
   const [curveTracks, setCurveTracks] = useState<CurveData[]>([])
+  const mapRef = useRef<L.Map | null>(null)
 
   useEffect(() => {
     fetch('http://127.0.0.1:8000/wells')
@@ -214,7 +215,7 @@ function App() {
         </label>
       </div>
 
-      <MapContainer center={[20, 0]} zoom={2} style={{ height: '100vh', width: '100%' }}>
+      <MapContainer center={[20, 0]} zoom={2} style={{ height: '100vh', width: '100%' }} ref={mapRef}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -226,13 +227,25 @@ function App() {
               key={well.id}
               position={[well.location!.lat, well.location!.lon]}
               icon={getMarkerIcon(well.quality_status)}
-              eventHandlers={{ click: () => { setSelectedWell(well); setQuestion(''); setQueryResult(null) } }}
+              eventHandlers={{ click: () => {
+                setSelectedWell(well)
+                setQuestion('')
+                setQueryResult(null)
+                mapRef.current?.flyTo([well.location!.lat, well.location!.lon], 8, { duration: 1 })
+              } }}
             >
               <Popup>{well.name}</Popup>
             </Marker>
           ))}
           {showSlbCenters && SLB_CENTERS.map((center) => (
-            <Marker key={center.name} position={[center.lat, center.lon]} icon={slbIcon}>
+            <Marker
+              key={center.name}
+              position={[center.lat, center.lon]}
+              icon={slbIcon}
+              eventHandlers={{ click: () => {
+                mapRef.current?.flyTo([center.lat, center.lon], 8, { duration: 1 })
+              } }}
+            >
               <Popup>{center.name}</Popup>
             </Marker>
           ))}
