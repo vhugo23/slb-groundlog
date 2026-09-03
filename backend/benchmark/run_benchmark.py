@@ -25,8 +25,13 @@ BASE_URL = "http://127.0.0.1:8000"
 # a transient 429 (which surfaces to us as our own API's 500, since the
 # API doesn't distinguish it from any other unhandled exception).
 MAX_RETRIES = 3
-RETRY_BACKOFF_SECONDS = 15
-REQUEST_DELAY_SECONDS = 3
+RETRY_BACKOFF_SECONDS = 60
+# gemini-3.6-flash's free tier caps at 5 requests/minute (confirmed via
+# aistudio.google.com/rate-limit) - that's one request every 12s, minimum.
+# The old 3s delay fired up to ~4x that rate, so the benchmark was tripping
+# the cap itself on every run rather than hitting some external fluke.
+# 13s keeps every request in its own rate-limit window with a 1s margin.
+REQUEST_DELAY_SECONDS = 13
 
 def extract_numbers(text: str) -> list[float]:
     return [float(n) for n in re.findall(r"-?\d+\.\d+|-?\d+", text)]
