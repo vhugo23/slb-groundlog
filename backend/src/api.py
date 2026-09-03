@@ -6,6 +6,7 @@
 # four endpoints reuse this same pattern.
 
 import os
+import time
 from contextlib import contextmanager
 
 import math
@@ -19,6 +20,17 @@ from psycopg2 import pool
 from fastapi import FastAPI
 from pydantic import BaseModel
 from google import genai
+# Not re-exported from google.genai.errors - interactions.create() goes
+# through the newer _gaos-based client, which wraps httpx failures into
+# this separate compat_errors hierarchy (APITimeoutError etc.), not the
+# classic google.genai.errors one. Private path (leading underscore), so
+# it's the SDK's actual wrapping location for this version, not a stable
+# public API - worth re-checking this import on any google-genai upgrade.
+from google.genai._gaos.lib.compat_errors import (
+    APIConnectionError,
+    InternalServerError,
+    RateLimitError,
+)
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -109,12 +121,31 @@ def get_genai_client():
     return _genai_client
 
 def call_llm(prompt: str) -> str:
-    interaction = get_genai_client().interactions.create(
-        model="gemini-3.6-flash",
-        input=prompt,
-        timeout=60,
-    )
-    return interaction.output_text
+    """Call the Gemini interactions API, retrying once on transient failures.
+
+    One retry, not a backoff loop: retrying can't fix real quota
+    exhaustion or a sustained Google-side outage, so looping just delays
+    the eventual failure. What it does fix is the occasional flaky
+    client-side timeout / 429 / 5xx - a single extra attempt absorbs
+    those without doubling the tail latency of requests that succeed on
+    the first try. Anything else (bad request, auth, 404, etc.) is a
+    real error and is not retried.
+    """
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            interaction = get_genai_client().interactions.create(
+                model="gemini-3.6-flash",
+                input=prompt,
+                timeout=60,
+            )
+            return interaction.output_text
+        except (APIConnectionError, RateLimitError, InternalServerError) as exc:
+            last_error = exc
+            if attempt == 0:
+                time.sleep(2)
+                continue
+    raise last_error
 
 def build_grounded_prompt(context: dict, question: str) -> str:
     return f"""You are answering a question about well-log data using ONLY the information given below. Do not use any outside knowledge about oil and gas wells, geology, or typical values.
