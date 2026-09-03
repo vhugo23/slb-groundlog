@@ -143,16 +143,30 @@ def interpret_llm_response(raw_response: str) -> tuple[bool, str]:
 # every HTTP request is slow and won't hold up under concurrent load. Batch
 # and interactive workloads earn different data-access patterns; this isn't
 # an inconsistency with the ingestion script, it's a deliberate split.
-DB_POOL = psycopg2.pool.SimpleConnectionPool(
-    minconn=1,
-    maxconn=5,
-    dbname=os.environ.get("GROUNDLOG_DB", "groundlog"),
-    user=os.environ.get("GROUNDLOG_DB_USER", "postgres"),
-    # Reuses the same PGPASSWORD env var your psql workflow already relies
-    # on - one config convention, not two.
-    password=os.environ.get("PGPASSWORD"),
-    host=os.environ.get("GROUNDLOG_DB_HOST", "localhost"),
-)
+#
+# DATABASE_URL, when set, is a full connection string (Neon in dev/prod,
+# eventually Render) and takes priority. Falling back to the discrete
+# GROUNDLOG_DB_* vars keeps the original local-Postgres workflow working
+# unchanged when DATABASE_URL isn't set at all.
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    DB_POOL = psycopg2.pool.SimpleConnectionPool(
+        minconn=1,
+        maxconn=5,
+        dsn=DATABASE_URL,
+    )
+else:
+    DB_POOL = psycopg2.pool.SimpleConnectionPool(
+        minconn=1,
+        maxconn=5,
+        dbname=os.environ.get("GROUNDLOG_DB", "groundlog"),
+        user=os.environ.get("GROUNDLOG_DB_USER", "postgres"),
+        # Reuses the same PGPASSWORD env var your psql workflow already relies
+        # on - one config convention, not two.
+        password=os.environ.get("PGPASSWORD"),
+        host=os.environ.get("GROUNDLOG_DB_HOST", "localhost"),
+    )
 
 
 @contextmanager
