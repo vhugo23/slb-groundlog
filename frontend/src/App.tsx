@@ -79,6 +79,12 @@ const slbIcon = L.divIcon({
   iconAnchor: [7, 7],
 })
 
+// VITE_API_BASE_URL, when set, points at a deployed backend (Render). Vite
+// only exposes env vars prefixed VITE_ to browser code - anything else stays
+// server-only, by design. Falling back to localhost keeps local dev working
+// exactly as before when the var isn't set.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
 function scaleDepthToY(depth: number, minDepth: number, maxDepth: number, height: number): number {
   return ((depth - minDepth) / (maxDepth - minDepth)) * height
 }
@@ -138,6 +144,7 @@ function App() {
   const [question, setQuestion] = useState('')
   const [queryResult, setQueryResult] = useState<{ grounded: boolean; answer: string; citation: string | null } | null>(null)
   const [isQuerying, setIsQuerying] = useState(false)
+  const [queryError, setQueryError] = useState<string | null>(null)
   const [showSlbCenters, setShowSlbCenters] = useState(true)
   const [wellFlags, setWellFlags] = useState<QualityFlag[]>([])
   const [curveTracks, setCurveTracks] = useState<CurveData[]>([])
@@ -148,7 +155,7 @@ function App() {
   useEffect(() => {
     setWellsLoading(true)
     setWellsError(null)
-    fetch('http://127.0.0.1:8000/wells')
+    fetch(`${API_BASE}/wells`)
       .then((res) => res.json())
       .then((data) => setWells(data))
       .catch((err) => {
@@ -169,7 +176,7 @@ function App() {
     setDetailError(null)
     setWellFlags([])
     setCurveTracks([])
-    fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}`)
+    fetch(`${API_BASE}/wells/${selectedWell.id}`)
       .then((res) => res.json())
       .then((data) => {
         setWellFlags(data.quality_flags)
@@ -183,7 +190,7 @@ function App() {
 
         return Promise.all(
           mnemonicsToPlot.map((mnemonic) =>
-            fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}/curves/${mnemonic}`).then((res) => res.json())
+            fetch(`${API_BASE}/wells/${selectedWell.id}/curves/${mnemonic}`).then((res) => res.json())
           )
         ).then((tracks) => setCurveTracks(tracks))
       })
@@ -198,16 +205,21 @@ function App() {
     if (!selectedWell || !question.trim()) return
     setIsQuerying(true)
     setQueryResult(null)
+    setQueryError(null)
     try {
-      const res = await fetch(`http://127.0.0.1:8000/wells/${selectedWell.id}/query`, {
+      const res = await fetch(`${API_BASE}/wells/${selectedWell.id}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
       })
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`)
+      }
       const data = await res.json()
       setQueryResult(data)
     } catch (err) {
       console.error('Query failed:', err)
+      setQueryError('Could not get an answer — check that the API server is running.')
     } finally {
       setIsQuerying(false)
     }
@@ -267,6 +279,7 @@ function App() {
                 setSelectedWell(well)
                 setQuestion('')
                 setQueryResult(null)
+                setQueryError(null)
                 mapRef.current?.flyTo([well.location!.lat, well.location!.lon], 8, { duration: 1 })
               } }}
             >
@@ -367,6 +380,10 @@ function App() {
           <button onClick={handleSubmitQuestion} disabled={isQuerying || !question.trim()} style={{ marginTop: '8px' }}>
             {isQuerying ? 'Asking...' : 'Ask'}
           </button>
+
+          {queryError && (
+            <p style={{ color: '#dc2626', fontSize: '13px', marginTop: '8px' }}>{queryError}</p>
+          )}
 
           {queryResult && (
             <div style={{ marginTop: '16px' }}>
