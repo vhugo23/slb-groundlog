@@ -172,8 +172,21 @@ else:
 @contextmanager
 def get_db_cursor():
     """Borrow a connection from the pool, hand back a cursor, always return
-    the connection when the caller's `with` block exits - even on error."""
+    the connection when the caller's `with` block exits - even on error.
+
+    Neon's compute auto-suspends after a few idle minutes and drops its
+    connections when it does; this pool is long-lived across that cycle
+    independently of Neon's, so a pooled connection can go stale while
+    this process keeps running. A cheap SELECT 1 catches that before real
+    work runs, discarding and replacing a dead connection instead of
+    failing the whole request."""
     conn = DB_POOL.getconn()
+    try:
+        conn.cursor().execute("SELECT 1;")
+    except psycopg2.OperationalError:
+        DB_POOL.putconn(conn, close=True)
+        conn = DB_POOL.getconn()
+
     try:
         # RealDictCursor: rows come back as {"name": ...} not row[1].
         # Positional indexing breaks silently the moment someone reorders
