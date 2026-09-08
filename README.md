@@ -8,7 +8,13 @@ A grounded query platform over subsurface well-log data: ingest real LAS files, 
 
 ## Why this exists
 
-SLB's subsurface data is fragmented across legacy formats, and the company has bet its next decade of digital growth on AI that reasons over that data — the kind of confident recommendation sitting on top of unreliable input is the actual risk. Live SLB job postings name "benchmark datasets, evaluation metrics, and acceptance criteria" as a real deliverable. GroundLog is a small, honest proof of that pattern: a data-quality pipeline paired with a grounded, *evaluated* query layer, built solo and defensible end to end — not a demo that only looks like it works.
+SLB's Digital division is the company's smallest business by revenue and its fastest-growing, and SLB has put numbers on where that growth is supposed to come from: a target to double Digital ARR to $2 billion and adjusted EBITDA to $1.8–2 billion by 2030, on top of $3 billion already invested in Delfi/Lumi R&D since 2016 (2026 Digital Investor Day materials). In February 2026, CEO Olivier Le Peuch described SLB's AI as having moved "beyond simple application features to foundation models with deep domain expertise enabling autonomous operations," with 150+ AI-enabled applications already deployed across drilling risk prediction, maintenance forecasting, and production optimization (THRIVE Energy Conference, Feb 2026).
+
+That bet sits on top of a real, documented problem: decades of subsurface data trapped in incompatible legacy formats — LAS well logs, SEG-Y seismic, proprietary Petrel/Techlog project files. SLB open-sourced OSDU in 2019 specifically to unify that data, and OSDU's own integrator ecosystem still documents "ingest first, fix later" as a live anti-pattern, alongside ongoing schema drift and legacy-app non-compliance. Feeding an autonomous AI layer from a data layer with that history is exactly the risk SLB's own product messaging is careful about: Tela, SLB's agentic assistant, markets itself around "physics-informed reasoning" rather than generic chat, because a bad recommendation on a drilling operation is a safety incident, not a UX complaint. It's a caution the whole industry shares, in different doses — Baker Hughes' equivalent (Leucipa/Cordant) is explicitly positioned as a "trusted assistant" that stops short of autonomous decision-making, even as SLB's own Tela includes an autonomous tier by design. Whichever posture a company takes on autonomy, the requirement underneath is the same: the AI has to be checkable against real data, not just plausible-sounding.
+
+GroundLog is a small, honest proof of that specific requirement — a data-quality pipeline that surfaces exactly what's wrong with ingested well-log data, paired with a query layer that answers only from records it can cite and refuses outright when it can't. It's also a direct answer to something SLB's own hiring language asks for: live postings for AI-adjacent roles name "benchmark datasets, evaluation metrics, and acceptance criteria" as an explicit deliverable, which is why this project ships with its own versioned benchmark harness instead of a demo that just looks like it works.
+
+**Worth being direct about:** this reasoning is this project's own synthesis of SLB's public materials — investor-day filings, executive statements, job postings, competitor positioning — not a claim about SLB's internal org structure, a specific team, or anything SLB has said about what a candidate should build. It's a defensible hypothesis, not a confirmed brief.
 
 ## Architecture
 
@@ -101,6 +107,37 @@ cd backend
 python -m pytest tests/ -v          # fast, no external dependencies
 python benchmark/run_benchmark.py   # hits the live server + real Gemini API
 ```
+
+## Talking to the query engine
+
+The query endpoint isn't free-text NLU — it's deliberately simple and inspectable. `POST /wells/{well_id}/query` with `{"question": "..."}` checks your question for two things before it ever calls the LLM:
+
+1. **An exact curve mnemonic**, case-insensitive, as a whole word (e.g. `GR`, `NPHI`) — if one of the well's real curves is named in the question, that curve's summary stats get fetched and handed to the model.
+2. **A quality-flag keyword** — `flag`, `flagged`, `quality`, `problem`, `issue`, `gap`, `missing`, `flatline`, `duplicate`, `out of range` — matched anywhere in the question, which fetches that well's quality-flag list instead.
+
+Match neither, and the question still goes to Gemini — just with no real data behind it, so a correct answer is a refusal, not a guess.
+
+Curve mnemonics differ per well (16–18 curves each); `GET /wells/{well_id}` lists exactly what's available before you query. For well 1 (15/9-13), the queryable curves are: `CALI`, `MUDWEIGHT`, `ROP`, `RDEP`, `RSHA`, `RMED`, `RXO`, `SP`, `DTC`, `NPHI`, `PEF`, `GR`, `RHOB`, `DRHO`.
+
+```bash
+curl -X POST https://slb-groundlog.onrender.com/wells/1/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "what does the GR log show"}'
+# {"grounded": true, "answer": "...", "citation": "well 1, curve GR"}
+```
+
+Questions verified against the live benchmark set (`backend/benchmark/test_cases.py`):
+
+| Question | What happens | Why |
+|---|---|---|
+| "what does the GR log show" | Grounded, cites `well 1, curve GR` | `GR` is a real curve on this well |
+| "are there any flatline flags on this well" | Grounded, cites `well 1 quality_flags` | `flatline` is a quality keyword |
+| "what is the range of NPHI values" | Grounded, cites `well 1, curve NPHI` | `NPHI` is a real curve |
+| "what is the ILD reading" | Refused | `ILD` isn't in this dataset — the resistivity curves here are `RDEP`/`RMED`/`RSHA`/`RXO` instead |
+| "how deep was this well drilled" | Refused | depth range is well metadata, not a curve or quality keyword this path recognizes |
+| "what is the weather like today" | Refused | no curve or keyword match, and nothing for the model to ground an answer in either |
+
+That last distinction is the point: a refusal on "ILD reading" and a refusal on "weather today" happen through the same code path, but only one of them is really "no data for this" versus "not even a real well-log question" — the model, not a keyword filter, is what tells those two apart.
 
 ## Known limitations — stated honestly, not glossed over
 
