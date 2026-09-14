@@ -20,8 +20,12 @@ GroundLog is a small, honest proof of that specific requirement — a data-quali
 
 ```
 Frontend (React/TS/Leaflet)
-   world map: SLB technology centers (static, demo layer)
-   well cluster (live, queryable, colored by quality status)
+   Overview   — dataset-wide metrics, live flag-type breakdown, map preview
+   Wells      — searchable inventory, status + issue counts per well
+   Workspace  — per-well quality summary, aligned multi-curve log viewer,
+                filterable flag table, grounded query panel
+   Explore Map — well cluster (live, queryable) + SLB technology centers
+                 (static, demo layer) as two independently-toggleable layers
         │  REST (JSON)
         ▼
 API service (FastAPI, psycopg2 connection pool)
@@ -48,6 +52,7 @@ Postgres: wells / curves / quality_flags
 
   A separate sanitization pass also catches per-curve null sentinels (e.g. `-999.9`) that don't match a file's globally declared `NULL` header value — a real bug found and fixed against real data, not a synthetic case.
 
+- **Frontend**: a four-page app (Overview, Wells, Well Workspace, Explore Map) built around one design system — dark ink-navy sidebar nav, a dedicated logging-teal accent kept visually separate from the three semantic status colors, and IBM Plex Sans/Mono throughout, so status color and interaction color never collide. The well-log viewer renders up to four curve tracks on a shared depth axis with hover readouts, flatline/out-of-range bands shaded directly on the affected curve, and null gaps preserved as real breaks in the line rather than interpolated across. All status-color pairs were checked against real WCAG contrast ratios (not eyeballed) and darkened where they fell short of 4.5:1.
 - **API** (`GET /wells`, `GET /wells/{id}`, `GET /wells/{id}/curves/{mnemonic}`, `POST /wells/{id}/query`, `GET /health`) — connection-pooled, parameterized, Pydantic response models throughout.
 - **Grounded query engine**: this is structured data, not free text, so retrieval here means fetching exact records (a curve's summary stats, or a well's quality-flag summary) from Postgres — not vector search. The LLM (Gemini) receives only those retrieved records plus an explicit instruction to answer strictly from what's given, or say so plainly if it can't. A citation is attached only when the model's answer is grounded; a question that matches nothing still goes to the model, with an explicit "no matching data" context, so a refusal reflects the model's own judgment rather than a keyword filter deciding before the model is ever consulted — and no citation is ever fabricated for that fallback path, regardless of what the model claims.
 - **Benchmark harness**: a small, versioned test set (`benchmark/test_cases.py`) run end to end against the live API, independently re-checking ground truth from the `GET` endpoints rather than trusting the query engine's own internals. Reports three metrics: query accuracy (golden set), refusal rate (unanswerable set), and groundedness rate (does the citation actually support the claim).
@@ -69,7 +74,14 @@ backend/
   sql/          schema.sql
   sample_data/  real Volve LAS files
 frontend/
-  src/          React + TypeScript + Vite + react-leaflet
+  src/
+    App.tsx       thin top-level component: route switch + top-level state
+    api.ts        typed fetch helpers, shared API types
+    components/   OverviewPage, WellsPage, WellWorkspace, ExploreMap,
+                  WellLogViewer, LogTrack, GroundedQueryPanel, ...
+    hooks/        useWells, useWellDetail, useAllWellDetails, useRoute
+    data/         static SLB technology-center data
+    styles/       tokens.css (design tokens), base.css (shared primitives)
 .github/workflows/ci.yml
 ```
 
@@ -150,6 +162,7 @@ That last distinction is the point: a refusal on "ILD reading" and a refusal on 
 - No database indexes beyond what the primary keys create implicitly — `quality_flags.well_id` is filtered directly in `GET /wells/{id}` but does a full sequential scan; fine at the current ~1,800-row scale, a real gap at a bigger one.
 - No upsert/dedup logic on ingestion — re-running the ingestion script against the same LAS file creates a duplicate well row instead of updating the existing one.
 - No formal migration framework — `schema.sql` is a single static file, applied once; schema changes are made by editing it directly rather than through versioned migrations.
+- The frontend's accessibility work covers real WCAG contrast checks and keyboard-reachable focus states by construction (everything interactive is a real `<button>`/`<input>`, nothing is a click handler on a bare `<div>`) — but it hasn't had an actual screen-reader or full manual keyboard walkthrough, so that's a verified-on-paper, not verified-in-use, claim.
 
 ## Data source
 
