@@ -1,0 +1,34 @@
+.gl-explore-map {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.gl-map-popup {
+  min-width: 190px;
+  font-size: 13px;
+}
+
+.gl-map-popup-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.gl-map-popup p {
+  margin: 4px 0;
+  color: #4a5560;
+}
+
+.gl-map-popup a {
+  font-size: 12px;
+}
+
+.gl-map-popup-btn {
+  margin-top: 6px;
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 10px;
+}

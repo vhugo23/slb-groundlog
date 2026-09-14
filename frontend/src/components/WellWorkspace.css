@@ -1,0 +1,37 @@
+.gl-back-link {
+  margin-bottom: var(--space-4);
+  padding-left: 6px;
+  padding-right: 10px;
+}
+
+.gl-workspace-header {
+  margin-bottom: var(--space-5);
+}
+
+.gl-workspace-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.gl-workspace-meta-item {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.gl-workspace-section {
+  margin-bottom: var(--space-5);
+}
+
+.gl-workspace-section h2 {
+  font-size: 15px;
+  margin-bottom: var(--space-3);
+}
+
+.gl-workspace-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

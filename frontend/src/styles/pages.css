@@ -1,0 +1,46 @@
+.gl-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+}
+
+.gl-page h1 {
+  font-size: 24px;
+  letter-spacing: -0.2px;
+}
+
+.gl-page-intro {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 68ch;
+  margin-top: var(--space-2);
+}
+
+.gl-error-card {
+  border-color: rgba(169, 50, 38, 0.35);
+  background: var(--status-severe-bg);
+  color: var(--status-severe);
+  font-size: 13.5px;
+}
+
+.gl-skeleton-block {
+  background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--border) 37%, var(--surface-sunken) 63%);
+  background-size: 400% 100%;
+  border-radius: var(--radius-lg);
+  animation: gl-skeleton-shine 1.4s ease infinite;
+}
+
+@keyframes gl-skeleton-shine {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-skeleton-block {
+    animation: none;
+  }
+}

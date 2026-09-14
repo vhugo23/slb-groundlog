@@ -1,0 +1,52 @@
+.gl-quality-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.gl-quality-empty p {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gl-quality-intro {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-bottom: var(--space-4);
+  max-width: 68ch;
+}
+
+.gl-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.gl-quality-card {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.gl-quality-card-count {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+.gl-quality-card-label {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--status-flagged);
+}
+
+.gl-quality-card-desc {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}

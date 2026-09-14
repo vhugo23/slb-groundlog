@@ -1,0 +1,125 @@
+.gl-curve-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.gl-curve-chip {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.gl-curve-chip:hover {
+  background: var(--surface-sunken);
+}
+
+.gl-curve-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.gl-curve-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gl-curve-picker-error {
+  font-size: 12px;
+  color: var(--status-severe);
+  margin-left: var(--space-2);
+}
+
+.gl-log-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.gl-log-viewer {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.gl-log-axis {
+  flex-shrink: 0;
+  width: 52px;
+  position: relative;
+}
+
+.gl-log-axis-header {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  text-align: right;
+  padding-bottom: 6px;
+  height: 34px;
+}
+
+.gl-log-axis-track {
+  position: relative;
+  border-right: 1px solid var(--border-strong);
+}
+
+.gl-log-axis-tick {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gl-log-track {
+  flex-shrink: 0;
+}
+
+.gl-log-track-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.gl-log-track-unit {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+
+.gl-log-track-range {
+  font-size: 10.5px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.gl-log-track-svg {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  display: block;
+  cursor: crosshair;
+}
+
+.gl-log-track-tooltip {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  height: 14px;
+}
+
+.gl-log-note {
+  margin-top: var(--space-3);
+  font-size: 12px;
+  color: var(--text-faint);
+  max-width: 70ch;
+}

@@ -1,0 +1,15 @@
+.gl-wells-search {
+  max-width: 320px;
+  margin-top: var(--space-4);
+}
+
+.gl-wells-table th:last-child,
+.gl-wells-table td:last-child {
+  text-align: right;
+}
+
+.gl-wells-empty {
+  text-align: center;
+  color: var(--text-faint);
+  padding: var(--space-5);
+}

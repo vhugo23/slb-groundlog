@@ -1,0 +1,70 @@
+.gl-map-legend {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1000;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: 12.5px;
+  min-width: 190px;
+}
+
+.gl-map-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.gl-map-legend-row {
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.gl-map-legend-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.gl-map-legend-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.gl-legend-marker {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.gl-legend-marker-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid white;
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.gl-legend-marker-diamond {
+  width: 9px;
+  height: 9px;
+  background: var(--marker-slb);
+  transform: rotate(45deg);
+}
+
+.gl-legend-marker-triangle {
+  position: relative;
+  width: 11px;
+  height: 10px;
+  background: var(--marker-slb);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}

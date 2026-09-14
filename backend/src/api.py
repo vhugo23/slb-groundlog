@@ -252,6 +252,12 @@ class WellSummary(BaseModel):
     quality_status: str
     depth_range: DepthRange
     curve_count: int
+    # Presentation-support addition (frontend redesign, 2026-09): the row
+    # already computes this count for quality_status - exposing it too
+    # means the Overview/Wells pages can show a real issue count per well
+    # without an extra per-well fetch. Purely additive; existing clients
+    # that don't read this field are unaffected.
+    flag_count: int
     location: Location | None = None
 
 
@@ -288,6 +294,7 @@ def list_wells():
             quality_status="flagged" if row["flag_count"] > 0 else "clean",
             depth_range=DepthRange(start=row["start_depth"], stop=row["stop_depth"]),
             curve_count=row["curve_count"],
+            flag_count=row["flag_count"],
             location=Location(lat=row["latitude"], lon=row["longitude"]) if row["latitude"] is not None else None,
         )
         for row in rows

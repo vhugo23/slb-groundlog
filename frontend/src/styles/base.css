@@ -1,0 +1,240 @@
+/* Shared component primitives. Deliberately replaces browser-default
+ * button/input/checkbox styling per the redesign brief - these are used
+ * across every page rather than re-declared per component. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+.gl-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- buttons --- */
+.gl-btn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  line-height: 1.2;
+}
+
+.gl-btn:hover {
+  background: var(--surface-sunken);
+}
+
+.gl-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.gl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gl-btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.gl-btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.gl-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.gl-btn-ghost:hover {
+  background: var(--accent-bg);
+}
+
+/* --- inputs --- */
+.gl-textarea,
+.gl-input {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.gl-textarea:focus-visible,
+.gl-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* --- checkbox / toggle chip --- */
+.gl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.gl-toggle input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+/* --- status badge (never color-only: always paired with a dot + text) --- */
+.gl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.gl-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gl-badge-clean {
+  background: var(--status-clean-bg);
+  color: var(--status-clean);
+}
+.gl-badge-clean .gl-badge-dot {
+  background: var(--status-clean);
+}
+
+.gl-badge-flagged {
+  background: var(--status-flagged-bg);
+  color: var(--status-flagged);
+}
+.gl-badge-flagged .gl-badge-dot {
+  background: var(--status-flagged);
+}
+
+.gl-badge-severe {
+  background: var(--status-severe-bg);
+  color: var(--status-severe);
+}
+.gl-badge-severe .gl-badge-dot {
+  background: var(--status-severe);
+}
+
+.gl-badge-neutral {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral);
+}
+.gl-badge-neutral .gl-badge-dot {
+  background: var(--status-neutral);
+}
+
+/* --- card --- */
+.gl-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+/* --- table --- */
+.gl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gl-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 12px;
+}
+
+.gl-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.gl-table tbody tr:hover {
+  background: var(--surface-sunken);
+}
+
+/* --- scrollbars in dense panels --- */
+.gl-scroll {
+  overflow-y: auto;
+}
+
+.gl-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.gl-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,97 @@
+/* GroundLog design tokens.
+ *
+ * Palette is drawn from the subject matter, not a generic SaaS kit: deep
+ * ink-navy for the analysis shell (echoes a logging-unit control panel),
+ * a cool stone-grey workspace surface (not the warm-cream default), and a
+ * single logging-teal accent for interaction, kept separate from the three
+ * semantic status colors so "this is clickable" and "this is a status"
+ * never collide.
+ *
+ * Two type families, each doing one job: Plex Sans carries UI text and
+ * prose; Plex Mono is reserved for actual data readouts (depths, curve
+ * values, counts, mnemonics) because this is a data-inspection tool and
+ * tabular figures benefit from fixed-width alignment - not used as a
+ * decorative "technical" label face.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* --- shell (sidebar / chrome) --- */
+  --shell-bg: #101c24;
+  --shell-bg-elevated: #17262f;
+  --shell-border: #24343d;
+  --shell-text: #9fb2bc;
+  --shell-text-muted: #647a85;
+  --shell-text-active: #f3f7f8;
+  --shell-active-bg: #1e343d;
+
+  /* --- workspace surfaces --- */
+  --surface: #eef1f1;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e3e8e9;
+  --border: #d2dadc;
+  --border-strong: #b7c2c5;
+
+  /* --- text --- */
+  --text: #16232a;
+  --text-muted: #56666e;
+  /* Darkened from an initial #86959c to clear 4.5:1 against white - this
+     tier is still used for real (if secondary) text content, e.g. axis
+     labels and metadata, so it has to meet the same AA bar as body text. */
+  --text-faint: #6b777c;
+
+  /* --- accent (interaction only - never a status) --- */
+  --accent: #1e6e75;
+  --accent-hover: #175a60;
+  --accent-bg: rgba(30, 110, 117, 0.1);
+  --accent-contrast: #ffffff;
+
+  /* --- semantic status colors (paired with text/icon, never color-only) ---
+     Each hex below is the version darkened just enough to clear 4.5:1
+     contrast against a white/near-white surface at small badge sizes -
+     the original, brighter values read fine to the eye but measured
+     under AA. Map markers and chart fills can afford to be a touch more
+     vivid than body text, but reusing one token avoids a second source
+     of truth for what "flagged" means across the app. */
+  --status-clean: #2b8251;
+  --status-clean-bg: rgba(43, 130, 81, 0.12);
+  --status-flagged: #a16624;
+  --status-flagged-bg: rgba(161, 102, 36, 0.14);
+  --status-severe: #a93226;
+  --status-severe-bg: rgba(169, 50, 38, 0.12);
+  --status-neutral: #6d767e;
+  --status-neutral-bg: rgba(109, 118, 126, 0.12);
+
+  /* --- chart / log-track trace colors (distinct from status colors) --- */
+  --track-1: #1e6e75;
+  --track-2: #6e4c9e;
+  --track-3: #3b6fa0;
+  --track-4: #8a6d3b;
+
+  /* --- map layer markers --- */
+  --marker-slb: #6e4c9e;
+
+  /* --- type --- */
+  --font-ui: 'IBM Plex Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+
+  /* --- spacing scale --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* --- shape --- */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow-sm: 0 1px 2px rgba(16, 28, 36, 0.08);
+  --shadow-md: 0 4px 16px rgba(16, 28, 36, 0.14);
+  --shadow-panel: -2px 0 12px rgba(16, 28, 36, 0.12);
+
+  --shell-width: 232px;
+}

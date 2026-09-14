@@ -1,0 +1,114 @@
+.gl-overview-hero h1 {
+  font-size: 28px;
+  letter-spacing: -0.3px;
+  max-width: 22ch;
+}
+
+.gl-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.gl-metric {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+
+.gl-metric-value {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+.gl-metric-label {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.gl-metric-static-tag {
+  font-size: 10px;
+  color: var(--text-faint);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.gl-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.gl-overview-section-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+  max-width: 60ch;
+}
+
+.gl-overview-benchmark-note {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  font-style: italic;
+}
+
+.gl-flag-bars {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gl-flag-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+}
+
+.gl-flag-bar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.gl-flag-bar-track {
+  height: 10px;
+  background: var(--surface-sunken);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gl-flag-bar-fill {
+  height: 100%;
+  background: var(--status-flagged);
+  border-radius: 999px;
+}
+
+.gl-flag-bar-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.gl-overview-map-card {
+  margin-bottom: var(--space-4);
+}
+
+.gl-overview-map-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
